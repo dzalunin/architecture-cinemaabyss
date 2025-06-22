@@ -1,0 +1,62 @@
+package main
+
+import (
+	"math/rand"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"proxy/config"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	cfg := config.Load()
+
+	router := gin.Default()
+	router.GET("/health", health)
+	api := router.Group("/api")
+	{
+		api.Any("/events/*proxyPath", reverseProxy(cfg.EventsURL))
+		api.Any("/movies/*proxyPath", moviesProxy(cfg))
+		api.Any("/users/*proxyPath", reverseProxy(cfg.MonolithURL))
+		api.Any("/payments/*proxyPath", reverseProxy(cfg.MonolithURL))
+		api.Any("/subscription/*proxyPath", reverseProxy(cfg.MonolithURL))
+	}
+
+	router.Run(":" + cfg.Port)
+}
+
+func health(context *gin.Context) {
+	context.JSON(http.StatusOK, gin.H{"status": true})
+}
+
+func moviesProxy(cfg *config.Config) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		var target = cfg.MonolithURL
+
+		if cfg.GradualMigration && rand.Intn(100) < cfg.MoviesPercent {
+			target = cfg.MoviesURL
+		}
+		forwardRequest(target, context)
+	}
+}
+
+func reverseProxy(target *url.URL) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		forwardRequest(target, context)
+	}
+}
+
+func forwardRequest(target *url.URL, c *gin.Context) {
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	c.Request.URL.Scheme = target.Scheme
+	c.Request.URL.Host = target.Host
+	c.Request.Host = target.Host
+	c.Request.URL.Path = strings.TrimSuffix(c.Request.URL.Path, "/")
+	c.Request.URL.RawPath = strings.TrimSuffix(c.Request.URL.RawPath, "/")
+
+	proxy.ServeHTTP(c.Writer, c.Request)
+}
