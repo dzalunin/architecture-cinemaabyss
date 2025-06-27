@@ -34,9 +34,10 @@ func main() {
 	go consumer.Consume(ctx, cfg.UserEventsTopic, 0, messageHandler)
 
 	router := gin.Default()
-	router.GET("/health", health)
+
 	eventsApi := router.Group("/api/events")
 	{
+		eventsApi.GET("/health", health)
 		eventsApi.POST("/movie", movieEvent(producer, cfg.MovieEventsTopic))
 		eventsApi.POST("/user", userEvent(producer, cfg.UserEventsTopic))
 		eventsApi.POST("/payment", paymentEvent(producer, cfg.PaymentEventsTopic))
@@ -83,7 +84,7 @@ func movieEvent(producer sarama.SyncProducer, topic string) gin.HandlerFunc {
 			Event:     event,
 		}
 
-		context.JSON(http.StatusOK, response)
+		context.JSON(http.StatusCreated, response)
 	}
 }
 
@@ -123,7 +124,7 @@ func userEvent(producer sarama.SyncProducer, topic string) gin.HandlerFunc {
 			Event:     event,
 		}
 
-		context.JSON(http.StatusOK, response)
+		context.JSON(http.StatusCreated, response)
 	}
 }
 
@@ -162,7 +163,7 @@ func paymentEvent(producer sarama.SyncProducer, topic string) gin.HandlerFunc {
 			Event:     event,
 		}
 
-		context.JSON(http.StatusOK, response)
+		context.JSON(http.StatusCreated, response)
 	}
 }
 
