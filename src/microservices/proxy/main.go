@@ -22,7 +22,7 @@ func main() {
 		api.Any("/movies/*proxyPath", moviesProxy(cfg))
 		api.Any("/users/*proxyPath", reverseProxy(cfg.MonolithURL))
 		api.Any("/payments/*proxyPath", reverseProxy(cfg.MonolithURL))
-		api.Any("/subscription/*proxyPath", reverseProxy(cfg.MonolithURL))
+		api.Any("/subscriptions/*proxyPath", reverseProxy(cfg.MonolithURL))
 	}
 
 	router.Run(":" + cfg.Port)
