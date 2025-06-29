@@ -38,7 +38,7 @@ spec:
               service:
                 name: monolith
                 port:
-                  number: 8080                  
+                  number: 8080
           - path: /api/payments
             pathType: Prefix
             backend:
