@@ -46,6 +46,14 @@
    ```
 - Протестируйте постепенный переход, изменив переменную окружения MOVIES_MIGRATION_PERCENT в файле docker-compose.yml.
 
+Методика:
+`for i in {1..20}; do echo $i; curl 'http://localhost:8000/api/movies/'; done`
+
+Проверка на 30%:
+[load_balance_30.png](./img/load_balance_30.png)
+
+Проверка на 70%:
+[load_balance_70.png](./img/load_balance_70.png)
 
 ### 2. Kafka
  Вам как архитектуру нужно также проверить гипотезу насколько просто реализовать применение Kafka в данной архитектуре.

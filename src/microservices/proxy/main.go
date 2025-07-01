@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"proxy/config"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,9 +38,12 @@ func moviesProxy(cfg *config.Config) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		var target = cfg.MonolithURL
 
-		if cfg.GradualMigration && rand.Intn(100) < cfg.MoviesPercent {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		if r.Float64()*100 < float64(cfg.MoviesPercent) {
 			target = cfg.MoviesURL
 		}
+
+		log.Printf("Percent: %d, target: %v", cfg.MoviesPercent, target.Host)
 		forwardRequest(target, context)
 	}
 }
