@@ -5,7 +5,7 @@ global:
 
 # Image pull secrets
 imagePullSecrets:
-  dockerconfigjson: ewoJImF1dGhzIjogewoJCSJnaGNyLmlvIjogewoJCQkiYXV0aCI6
+  dockerconfigjson: ewoJImF1dGhzIjogewoJCSJnaGNyLmlvIjogeyAiYXV0aCI6ICJaSHBoYkhWdWFXNDZaMmh3WDFSbGNIWkhXbTEzTjNkRE56UlhSR3c0YlVwMVIydExkVVZMWVhKS1NqTlNTVEJqWXc9PSJ9Cgl9LAoJImNyZWRzU3RvcmUiOiAiZGVza3RvcC5leGUiCn0=
 # Database configuration
 database:
   host: postgres
@@ -33,7 +33,7 @@ database:
 monolith:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/monolith
+    repository: ghcr.io/dzalunin/architecture-cinemaabyss/monolith
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -53,7 +53,7 @@ monolith:
 proxyService:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/proxy-service
+    repository: ghcr.io/dzalunin/architecture-cinemaabyss/proxy-service
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -73,7 +73,7 @@ proxyService:
 moviesService:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/movies-service
+    repository: ghcr.io/dzalunin/architecture-cinemaabyss/movies-service
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -93,7 +93,7 @@ moviesService:
 eventsService:
   enabled: true
   image:
-    repository: ghcr.io/db-exp/cinemaabysstest/events-service
+    repository: ghcr.io/dzalunin/architecture-cinemaabyss/events-service
     tag: latest
     pullPolicy: Always
   replicas: 1
@@ -139,6 +139,9 @@ kafka:
       partitions: 1
       replicationFactor: 1
 
+kafkaUi:
+  enabled: true
+
 # Zookeeper configuration
 zookeeper:
   enabled: true
@@ -177,6 +180,10 @@ ingress:
           pathType: Prefix
           service: events-service
           port: 8082
+        - path: /kafka-ui
+          pathType: Prefix
+          service: kafka-ui
+          port: 8080
 
 # Application configuration
 config:

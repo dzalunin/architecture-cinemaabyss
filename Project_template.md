@@ -5,7 +5,7 @@
 1. Спроектируйте to be архитектуру КиноБездны, разделив всю систему на отдельные домены и организовав интеграционное взаимодействие и единую точку вызова сервисов.
 Результат представьте в виде контейнерной диаграммы в нотации С4.
 Добавьте ссылку на файл в этот шаблон
-[ссылка на файл](ссылка)
+[containers.puml](https://github.com/dzalunin/architecture-cinemaabyss/blob/cinema/diagrams/containers.puml)
 
 # Задание 2
 
@@ -46,6 +46,14 @@
    ```
 - Протестируйте постепенный переход, изменив переменную окружения MOVIES_MIGRATION_PERCENT в файле docker-compose.yml.
 
+Методика:
+`for i in {1..20}; do echo $i; curl 'http://localhost:8000/api/movies/'; done`
+
+Проверка на 30%:
+[load_balance_30.png](./img/load_balance_30.png)
+
+Проверка на 70%:
+[load_balance_70.png](./img/load_balance_70.png)
 
 ### 2. Kafka
  Вам как архитектуру нужно также проверить гипотезу насколько просто реализовать применение Kafka в данной архитектуре.
@@ -58,7 +66,7 @@
 
 Необходимые тесты для проверки этого API вызываются при запуске npm run test:local из папки tests/postman 
 Приложите скриншот тестов и скриншот состояния топиков Kafka из UI http://localhost:8090 
-
+[kafka-ui-topics.png](./img/kafka_ui_with_tests.png)
 # Задание 3
 
 Команда начала переезд в Kubernetes для лучшего масштабирования и повышения надежности. 
@@ -108,7 +116,7 @@ jobs:
 ```
 Как только сборка отработает и в github registry появятся ваши образы, можно переходить к блоку настройки Kubernetes
 Успешным результатом данного шага является "зеленая" сборка и "зеленые" тесты
-
+[github_actions_cinemaabyss_tests.png](./img/github_actions_cinemaabyss_tests.png)
 
 ### Proxy в Kubernetes
 
@@ -272,9 +280,38 @@ cat .docker/config.json | base64
   Часть тестов с health-чек упадет, но создание событий отработает.
   Откройте логи event-service и сделайте скриншот обработки событий
 
-#### Шаг 3
-Добавьте сюда скриншота вывода при вызове https://cinemaabyss.example.com/api/movies и  скриншот вывода event-service после вызова тестов.
+  Использован docker desktop kubernetes
 
+  ```sh
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+  
+  kubectl get ingress -n cinemaabyss
+  NAME                  CLASS   HOSTS                     ADDRESS     PORTS   AGE
+  cinemaabyss-ingress   nginx   cinemaabyss.example.com   localhost   80      19m
+  ```
+
+#### Шаг 3
+
+```sh
+kubectl -n cinemaabyss logs events-service-776464f8db-f46cx -f
+
+[GIN] 2025/06/29 - 14:19:58 | 200 |      52.721µs |    192.168.65.3 | GET      "/api/events/health"
+[GIN] 2025/06/29 - 14:19:59 | 201 |    5.899015ms |    192.168.65.3 | POST     "/api/events/movie"
+2025/06/29 14:19:59 Received message: topic=movie-events partition=0 offset=1 key=movie value={"id":"movie-8-viewed","type":"movie","timestamp":"2025-06-29T14:19:59.116625202Z","payload":{"movie_id":8,"title":"Test Movie Event","action":"viewed","user_id":5}}
+[GIN] 2025/06/29 - 14:19:59 | 201 |    3.072197ms |    192.168.65.3 | POST     "/api/events/user"
+2025/06/29 14:19:59 Received message: topic=user-events partition=0 offset=1 key=user value={"id":"user-5-logged_in","type":"user","timestamp":"2025-06-29T14:19:59.239932677Z","payload":{"user_id":5,"username":"testuser","action":"logged_in","timestamp":"2025-06-29T14:19:59.235Z"}}
+[GIN] 2025/06/29 - 14:19:59 | 201 |    2.441278ms |    192.168.65.3 | POST     "/api/events/payment"
+2025/06/29 14:19:59 Received message: topic=payment-events partition=0 offset=1 key=payment value={"id":"payment-5","type":"payment","timestamp":"2025-06-29T14:19:59.363594583Z","payload":{"payment_id":5,"user_id":5,"amount":9.99,"status":"completed","timestamp":"2025-06-29T14:19:59.359Z","method_type":"credit_card"}}
+[GIN] 2025/06/29 - 14:20:05 | 200 |      53.137µs |        10.1.0.1 | GET      "/api/events/health"
+[GIN] 2025/06/29 - 14:20:10 | 200 |      88.608µs |        10.1.0.1 | GET      "/api/events/health"
+[GIN] 2025/06/29 - 14:20:15 | 200 |     124.196µs |        10.1.0.1 | GET      "/api/events/health"
+```
+
+Добавьте сюда скриншота вывода при вызове https://cinemaabyss.example.com/api/movies и  скриншот вывода event-service после вызова тестов.
+[k8s_cinemaabyss_tests_events_log.png](./img/k8s_cinemaabyss_tests_events_log.png)
+
+Результат выполнения тестов
+[k8s_cinemaabyss_tests.png](./img/k8s_cinemaabyss_tests.png)
 
 # Задание 4
 Для простоты дальнейшего обновления и развертывания вам как архитектуру необходимо так же реализовать helm-чарты для прокси-сервиса и проверить работу 
@@ -346,9 +383,39 @@ kubectl get pods -n cinemaabyss
 minikube tunnel
 ```
 
+Результат развертывания
+```
+./architecture-cinemaabyss$kubectl delete all --all -n cinemaabyss
+./architecture-cinemaabyss$kubectl delete  namespace cinemaabyss
+./architecture-cinemaabyss$ helm install cinemaabyss ./src/kubernetes/helm --namespace cinemaabyss --create-namespace
+NAME: cinemaabyss
+LAST DEPLOYED: Sun Jun 29 18:25:27 2025
+NAMESPACE: cinemaabyss
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+```
+./architecture-cinemaabyss$ kubectl get pods -n cinemaabyss
+NAME                              READY   STATUS    RESTARTS       AGE
+events-service-776464f8db-cmn5w   1/1     Running   3 (92s ago)    114s
+kafka-0                           1/1     Running   0              114s
+monolith-795c96f77b-trn4g         1/1     Running   2 (107s ago)   114s
+movies-service-c9b4c455-rqtbg     1/1     Running   2 (108s ago)   114s
+postgres-0                        1/1     Running   0              114s
+proxy-service-5667d7c89c-5k6cv    1/1     Running   0              114s
+zookeeper-0                       1/1     Running   0              114s
+```
+
+
 Потом вызовите 
 https://cinemaabyss.example.com/api/movies
 и приложите скриншот развертывания helm и вывода https://cinemaabyss.example.com/api/movies
+[helm_cinemaabyss_example_com_api_movies.png](./img/helm_cinemaabyss_example_com_api_movies.png)
+
+Результаты выполнения тестов.
+[helm_cinemaabyss_tests.png](./img/helm_cinemaabyss_tests.png)
 
 ## Удаляем все
 

@@ -1,0 +1,127 @@
+@startuml name: "CinemaAbyss"
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title "Диаграмма контейнеров системы «Кинобездна»"
+
+
+SHOW_PERSON_OUTLINE()
+
+Person(user, "User", "Пользователи платформы с мобильных устройств, ПК, смарт ТВ")
+
+System_Ext(extRecommendationSystem, "Recommendation system", "Сторонняя рекомендательная система")
+
+
+System_Boundary(system, "CinemaAbyss") {
+
+    ' Фронтенд приложения
+    Container(webApp, "Web Application", "React js", "SPA фронтенд")
+    Container(mobileApp, "Mobile App", "React Native", "Мобильное приложение")
+    Container(tvApp, "Smart TV App", "React Native TV", "Приложение для ТВ устройств")
+
+    ' BFF слой
+    Container(webBFF, "Web BFF", "Бэкенд для обслуживания web приложения")
+    Container(mobileBFF, "Mobile BFF", "Бэкенд для работы с мобильными клиентами")
+    Container(tvBFF, "TV BFF", "Бэкенд для работы со smart TV")
+
+    ' Маршрутизация трафика
+    Container(APIGateway, "API Gateway", "Принимает трафик извне, маршрутизирует его во внутренние сервисы")
+
+    ' Брокер сообщений
+    Container(messageBroker, "Message broker", "Обеспечивает асинхронное взаимодействие между сервисами")
+
+    ' Сервис профилей пользователями
+    Container_Boundary(userProfiles, "User profiles") {
+        Container(userProfilesService, "User Service", "Отвечает за управление профилями пользователей")
+        ContainerDb(userProfilesDB, "User profiles DB", "Хранит профили пользователей")
+        Rel(userProfilesService, userProfilesDB, "Read/Write")
+    }
+
+    ' Auth-сервис
+    Container_Boundary(auth, "Auth") {
+        Container(authService, "Auth Service", "Обрабатывает логин, выдаёт и верифицирует токены")
+        ContainerDb(authDB, "Auth DB", "Хранит данные учетных записей")
+        Rel(authService, authDB, "Read/Write")
+    }
+
+
+    ' Сервис управления подписками
+    Container_Boundary(subscriptions, "Subscriptions") {
+        Container(subscriptionsService, "Subscriptions service", "Отвечает за учет подписок пользователей")
+        ContainerDb(subscriptionsDB, "Subscriptions DB", "Хранит данные подписок")
+        Rel(subscriptionsService, subscriptionsDB, "Read/Write")    
+    }
+
+    ' Сервис каталога фильмов
+    Container_Boundary(catalog, "Catalog") {
+        Container(catalogService, "Catalog Service", "Управляет каталогом фильмов, жанрами, метаданными")
+        ContainerDb(catalogDB, "Catalog DB", "Хранит фильмы и метаданные")
+        Rel(catalogService, catalogDB, "Read/Write")    
+    }
+
+    ' Сервис стриминга видео контента
+    Container_Boundary(streaming, "Streaming") {
+        Container(streamingService, "Streaming Service", "Отвечает за потоковую раздачу видео контента")    
+        ContainerDb(s3, "Object Storage", "AWS S3", "Хранит видео файлы")
+        Rel(streamingService, s3, "Read")
+    }
+
+
+    ' Сервис учета платежей
+    Container_Boundary(payments, "Payment") {
+        Container(paymentService, "Payment Service", "Обрабатывает платежи и транзакции")
+        ContainerDb(paymentDB, "Payments DB", "Хранит информацию о транзакциях")
+        Rel(paymentService, paymentDB, "Read/Write")    
+    }
+
+    ' Аутентификация 
+    Rel(APIGateway, authService, "Передаёт логин/пароль")
+    Rel(authService, APIGateway, "Возвращает токен")
+
+
+    ' Rel(user, authService, "Вводит логин/пароль (POST /login)")
+    ' Rel(webBFF, authService, "Верификация access токена")
+    ' Rel(mobileBFF, authService, "Верификация access/refresh токена")
+    ' Rel(tvBFF, authService, "Верификация access токена")
+
+    ' Использование клиентов пользователем
+    Rel(user, webApp, "Использует")
+    Rel(user, mobileApp, "Использует")
+    Rel(user, tvApp, "Использует")
+
+    ' Связь клиентов с BFF
+    Rel(webApp, APIGateway, "Выполняет http запрос")
+    Rel(mobileApp, APIGateway, "Выполняет http запрос")
+    Rel(tvApp, APIGateway, "Выполняет http запрос")
+
+    Rel(APIGateway, webBFF, "Мартшутизирует трафик web приложения")
+    Rel(APIGateway, mobileBFF, "Мартшутизирует трафик мобильного клиента")
+    Rel(APIGateway, tvBFF, "Мартшутизирует трафик от smart TV")
+
+    ' Связи BFF с микросервисами
+    Rel(webBFF, userProfilesService, "")
+    Rel(webBFF, catalogService, "")
+    Rel(webBFF, subscriptionsService, "")
+    Rel(webBFF, streamingService, "")
+    Rel(webBFF, paymentService, "")
+
+    Rel(mobileBFF, userProfilesService, "")
+    Rel(mobileBFF, catalogService, "")
+    Rel(mobileBFF, subscriptionsService, "")
+    Rel(mobileBFF, streamingService, "") 
+    Rel(mobileBFF, paymentService, "")
+
+    Rel(tvBFF, userProfilesService, "")
+    Rel(tvBFF, catalogService, "")
+    Rel(tvBFF, subscriptionsService, "")
+    Rel(tvBFF, streamingService, "")
+    Rel(tvBFF, paymentService, "")
+
+    ' Работа с сервисом рекомендаций   
+    Rel(userProfilesService, messageBroker, "Отправка событий")
+    Rel(messageBroker, extRecommendationSystem, "Получение событий")
+    Rel(extRecommendationSystem, messageBroker, "Публикация рекомендаций")
+    Rel(messageBroker, userProfilesService, "Получение рекомендаций")
+}
+
+
+@enduml
